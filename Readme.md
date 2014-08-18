@@ -7,5 +7,5 @@ The repository contains two files: `Pashua.pm`, a Perl module which handles the 
 
 Requirements
 =============
-This code requires Perl (any version >= 5.8 will probably work) and Pashua. The Perl version shipped by Apple as part of the last few releases of Mac OS X can be used to run the code.
+This code requires Perl (any version >= 5.005, plus modules `File::Basename` and `File::Temp`) and Pashua. The Perl version shipped by Apple as part of the last few releases of Mac OS X can be used to run the code.
 
