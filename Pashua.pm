@@ -48,30 +48,27 @@ Pashua - Interface to Pashua.app
 =head1 DESCRIPTION
 
 Pashua is an application that can be used to provide dialog GUIs for (among other
-languages) Perl applications under Mac OS X. Pashua.pm is the glue between your scripty and Pashua. To learn
-more about Pashua, take a look at the application's Readme file.
+languages) Perl applications under Mac OS X. Pashua.pm is the glue between your
+scripts and Pashua. To learn more about Pashua, take a look at the application's
+Readme file.
 
-The Perl code that comes with Pashua (example script and this module,
-Pashua.pm) is only a suggestion and you are free to write your own code.
-For instance, the Perl code is in no way "idiomatic", and maybe you'd
-prefer some sort of OOP approach. It's up to you :-)
+The Perl code that comes with Pashua (example script and this module, Pashua.pm)
+is only a suggestion and you are free to write your own code.
 
 =head1 EXAMPLES
 
-Many GUI elements that are available are demonstrated in the example
-above, so there's mot much more to show ;-) To learn more about the
-configuration syntax, take a look at the documentation which is
-included with Pashua.
+A few UI elements are demonstrated in the example above, and you will find
+information on the others in the documentation.
 
-Please note in order for the example to work, the Pashua application
-must be in the current path, in the calling script's path, in
-/Applications/ or in ~/Applications/
+Please note in order for the example to work, the Pashua application must be in
+the current path, in the calling script's path, in /Applications/ or in
+~/Applications/
 If none of these paths apply, you will have to specify it manually:
 $Pashua::PATH = '/path/to/appfolder';
-before you call Pashua::run(). You can also create a symlink (a symlink,
-NOT a Mac OS X Finder alias) to Pashua in one of the directories
-mentioned above. As an alternative, you can supply Pashua.app's path
-as 3rd argument to sub run.
+... before you call Pashua::show_dialog(). You can also create a symlink (a
+symlink, NOT a Mac OS X Finder alias) to Pashua in one of the directories
+mentioned above. As an alternative, you can supply Pashua.app's path as 2nd
+argument to show_dialog().
 
 =head1 AUTHOR / TERMS AND CONDITIONS
 
@@ -81,28 +78,21 @@ https://github.com/BlueM/Pashua-Binding-Perl/blob/master/LICENSE.txt
 
 =cut
 
-
 require 5.005;
 
 use File::Basename;
-use File::Temp;
+use File::Temp qw(tempfile);
 use vars qw($VERSION $PATH);
 
-$VERSION = '0.9.5.1';
 $PATH = '';
 
-
-# Pashua::run - Calls the pashua binary, parses its result string
-# and generates a Perl hash that's returned. Attention: This sub
-# uses the module File::Temp, which is included with OSX 10.3's
-# Perl, but not with OS versions prior to 10.3. For convenience
-# reasons, I have copied the File::Basename code into this file.
-# If you are running 10.3 or later, you can remove this part and
-# simply use the line use File::Temp qw(tempfile) above.
-#  Argument 1: Configuration (dialog description) string
-#  Argument 2 (optional): Config. string text encoding, see documentation
-#  Argument 3 (optional): Directory that contains Pashua
-sub run {
+# Calls the pashua binary, parses its result string
+# and returns a hash containing the result values.
+#
+# Argument 1: Configuration (dialog description) string
+# Argument 2 (optional): Directory that contains Pashua. If not given, only default
+#                        locations will be searched.
+sub show_dialog {
 
 	# Initialize variables
 	my ($fh, $configfile, $path, $result, $arguments);
@@ -111,11 +101,38 @@ sub run {
 	($fh, $configfile) = File::Temp::tempfile(UNLINK => 1);
 
 	# Get function arguments
-	my($confstring, $encoding, $appdir) = (shift, shift, shift);
+	my($confstring, $appdir) = (shift, shift);
 
 	# Write data to temporary file
 	print $fh $confstring;
 	close $fh or die "Error trying to close $configfile: $!";
+
+	$pashuaPath = locate_pashua(defined $appdir ? $appdir : '');
+
+	# Call pashua binary with config file as argument and read result
+	# Note: Using modules such as IPC::System or String::ShellQuote would be
+	# a better solution, but both are not available by default on OS X.
+	$cmd = "'$pashuaPath' $configfile";
+	$result = `$cmd`;
+
+	# Parse result
+	my %result = ();
+	foreach (split/\n/, $result) {
+		/^(\w+)=(.*)$/;
+		next unless defined $1;
+		$result{$1} = $2;
+	}
+
+	return %result;
+}
+
+# Searches for Pashua in a number of default locations or in the folder given as
+# optional argument
+#
+# Argument: Folder containing Pashua.app (optional)
+sub locate_pashua {
+
+	my $appdir = shift;
 
 	# Try to figure out the path to pashua
 	my $bundlepath = "Pashua.app/Contents/MacOS/Pashua";
@@ -131,10 +148,7 @@ sub run {
 	);
 
 	# Use the directory given as argument
-	if (defined $appdir) {
-		if (!-d $appdir or !-e "$appdir/$bundlepath") {
-			die ("The path $appdir/$bundlepath is invalid");
-		}
+	if ($appdir) {
 		unshift(@searchpaths, "$appdir/$bundlepath");
 	}
 
@@ -142,35 +156,9 @@ sub run {
 	foreach (@searchpaths) {
 		next unless -e;
 		next unless -x;
-		$path = $_;
-		last;
+		return $_;
 	}
 
 	die	"Unable to locate the Pashua application.\n" unless $path;
-
-	# Pass encoding as argument to Pashua
-	if (defined $encoding and $encoding =~ m/^\w+$/) {
-		$arguments = "-e $encoding ";
-	}
-	else {
-		$arguments = "";
-	}
-
-	# Call pashua binary with config file as argument and read result
-	$cmd = "'$path' $arguments $configfile";
-	$result = `$cmd`;
-
-	# Parse result
-	my %result = ();
-	foreach (split/\n/, $result) {
-		/^(\w+)=(.*)$/;
-		next unless defined $1;
-		$result{$1} = $2;
-	}
-
-	# Return resulting hash
-	return %result;
-
-} # sub run
-
+}
 1;
