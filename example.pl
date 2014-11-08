@@ -83,10 +83,19 @@ db.tooltip = This is an element of type “defaultbutton” (which is automatica
 
 EOCONF
 
-# Get the icon from the application bundle
-my $path = dirname(dirname(Pashua::locate_pashua())) . '/Resources/AppIcon@2.png';
+my $customLocation;
+if (-d '/Volumes/Pashua/Pashua.app') {
+	# Looks like the Pashua disk image is mounted. Run from there.
+	$customLocation = '/Volumes/Pashua';
+} else {
+	# Search for Pashua in the standard locations
+	$customLocation = '';
+}
 
-if (-e $path) {
+# Get the icon from the application bundle
+my $path = dirname(dirname(Pashua::locate_pashua($customLocation))) . '/Resources/AppIcon@2.png';
+
+if (-f $path) {
     $conf .= "img.type = image
 	          img.x = 435
 	          img.y = 248
@@ -96,7 +105,7 @@ if (-e $path) {
 }
 
 # Pass the configuration string to the Pashua module
-my %result = Pashua::show_dialog($conf);
+my %result = Pashua::show_dialog($conf, $customLocation);
 
 if (%result) {
 	print "  Pashua returned the following hash keys and values:\n";
