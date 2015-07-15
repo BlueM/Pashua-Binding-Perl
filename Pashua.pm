@@ -73,8 +73,8 @@ argument to show_dialog().
 =head1 AUTHOR / TERMS AND CONDITIONS
 
 This software is copyright (c) 2003-2014 Carsten Bluem and licensed
-under the MIT license. For details, see
-https://github.com/BlueM/Pashua-Binding-Perl/blob/master/LICENSE.txt
+under the MIT license. For further information, see
+https://github.com/BlueM/Pashua-Binding-Perl/blob/master/Readme.md
 
 =cut
 
